@@ -35,7 +35,7 @@ def send_email(subject, body):
 class Client:
     last_request: datetime = None
     SLEEP_TIME: int = 5
-    cache_file = os.path.join(os.path.realpath(__file__), "grid_cache.json")
+    cache_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), "grid_cache.json")
 
     def sleep(self):
         sleep_for = self.SLEEP_TIME - (
