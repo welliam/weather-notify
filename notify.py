@@ -3,7 +3,7 @@ import pytz
 import re
 from time import sleep
 from datetime import datetime, date, timedelta, timezone
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import sys
 import requests
 from jinja2 import Environment, BaseLoader
@@ -110,7 +110,7 @@ locations = [
     ("Cow Heaven", 48.530990161411246, -121.47828161280614, "skyCover", 50, dict(hour=10, minute=0, second=0)),
     ("Keystone", 48.164146562311, -122.6778767848785, "skyCover", 50, dict(hour=7, minute=0, second=0)),
     ("Mt Erie", 48.454139838938154, -122.62510559151458, "skyCover", 50, dict(hour=7, minute=0, second=0)),
-    ("Duckabush", 47.68472641817225, -123.03761998209009, "skyCover", 50, dict(hour=7, minute=0, second=0)),
+    ("Duckabush", 47.68472641817225, -123.03761998209009, "skyCover", 50, dict(hour=10, minute=0, second=0)),
 ]
 
 
