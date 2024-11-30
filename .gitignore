@@ -1,3 +1,4 @@
 /__pycache__/
 /app_password.txt
 /env/
+/grid_cache.json

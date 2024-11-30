@@ -1,3 +1,4 @@
+import json
 import pytz
 import re
 from time import sleep
@@ -33,25 +34,46 @@ def send_email(subject, body):
 @dataclass
 class Client:
     last_request: datetime = None
-    SLEEP_TIME: int = 1
+    SLEEP_TIME: int = 5
+    cache_file = "grid_cache.json"
 
-    def get(self, url, retries=3):
+    def sleep(self):
         sleep_for = self.SLEEP_TIME - (
-            (datetime.now() - self.last_request).seconds
+            (datetime.now() - self.last_request).microseconds / 1000000
             if self.last_request is not None
             else self.SLEEP_TIME
         )
+        self.last_request = datetime.now()
         sleep(sleep_for)
+
+    def get(self, url, retries=3):
+        self.sleep()
+        print("GET", url)
         result = requests.get(url)
         if retries == 0 or result.status_code < 500:
             return result
         sleep(3)
+        print("Retrying")
         return self.get(url, retries - 1)
 
-    def forecast_grid_data(self, lat, lon):
+    def _get_grid(self, lat, lon):
+        if not os.path.exists(self.cache_file):
+            json.dump({}, open(self.cache_file, "w"))
+
+        cache = json.load(open(self.cache_file))
+        key = f"{lat},{lon}"
+        if key in cache:
+            return cache[key]
+
         points = f"https://api.weather.gov/points/{lat},{lon}"
         points_result = self.get(points).json()
-        return self.get(points_result["properties"]["forecastGridData"]).json()
+        grid_url = points_result["properties"]["forecastGridData"]
+        cache[key] = grid_url
+        json.dump(cache, open(self.cache_file, "w"))
+        return cache[key]
+
+    def forecast_grid_data(self, lat, lon):
+        return self.get(self._get_grid(lat, lon)).json()
 
 
 def duration_to_start_end(duration_str: str):
