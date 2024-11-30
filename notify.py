@@ -13,7 +13,7 @@ import os
 
 def send_email(subject, body):
     from_email_addr = "t5749837@gmail.com"
-    from_email_pass = os.environ["GMAIL_APP_PASSWORD"]
+    from_email_pass = open("app_password.txt").read().strip()
     to_email_addr = "well1912@gmail.com"
     msg = EmailMessage()
 
