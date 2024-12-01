@@ -50,8 +50,10 @@ class Client:
         self.sleep()
         print("GET", url)
         result = requests.get(url)
+
         if retries == 0 or result.status_code < 500:
             return result
+
         sleep(self.SLEEP_TIME)
         print("Retrying")
         return self.get(url, retries - 1)
@@ -101,7 +103,7 @@ def get_message(client, name, lat, lon, grid_attr, threshold, time):
     target_time = (pytz.UTC.localize(datetime.now()) + timedelta(days=1)).replace(**time)
     value = find_target_value(grid_data["properties"]["skyCover"]["values"], target_time)
     if value < threshold:
-        return name, f"{name} will have {grid_attr} of {value} tomorrow at {target_time}"
+        return name, f"{name} will have {grid_attr} of {value} tomorrow at {target_time.strftime('%H:%M')}"
     return None
 
 
