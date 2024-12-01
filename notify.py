@@ -34,7 +34,7 @@ def send_email(subject, body):
 @dataclass
 class Client:
     last_request: datetime = None
-    SLEEP_TIME: int = 5
+    SLEEP_TIME: int = 10
     cache_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), "grid_cache.json")
 
     def sleep(self):
@@ -52,7 +52,7 @@ class Client:
         result = requests.get(url)
         if retries == 0 or result.status_code < 500:
             return result
-        sleep(3)
+        sleep(self.SLEEP_TIME)
         print("Retrying")
         return self.get(url, retries - 1)
 
@@ -101,7 +101,7 @@ def get_message(client, name, lat, lon, grid_attr, threshold, time):
     target_time = (pytz.UTC.localize(datetime.now()) + timedelta(days=1)).replace(**time)
     value = find_target_value(grid_data["properties"]["skyCover"]["values"], target_time)
     if value < threshold:
-        return f"{name} will have {grid_attr} of {value} tomorrow at {target_time}"
+        return name, f"{name} will have {grid_attr} of {value} tomorrow at {target_time}"
     return None
 
 
@@ -119,9 +119,10 @@ if __name__ == "__main__":
         for name, lat, lon, grid_attr, threshold, time in locations
     ]))
     if messages:
-        messages_string = '\n'.join([message for message in messages])
+        messages_string = '\n'.join([message for _, message in messages])
+        subject = "Weather notification: " + ', '.join([subject for subject, _ in messages])
         print("Sending message:")
         print(messages_string)
-        send_email("Weather notification", messages_string)
+        send_email(subject, messages_string)
     else:
         print("No locations matching criteria tomorrow")
