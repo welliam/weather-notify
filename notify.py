@@ -14,7 +14,7 @@ import os
 
 def send_email(subject, body):
     from_email_addr = "t5749837@gmail.com"
-    from_email_pass = open("app_password.txt").read().strip()
+    from_email_pass = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_password.txt")).read().strip()
     to_email_addr = "well1912@gmail.com"
     msg = EmailMessage()
 
