@@ -17,7 +17,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
-    filename=os.path.join(os.path.abspath(__file__), "log.txt"),
+    filename=os.path.join(os.path.dirname(os.path.abspath(__file__)), "log.txt"),
     filemode='a',
 )
 
