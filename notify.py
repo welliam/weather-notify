@@ -10,6 +10,16 @@ from jinja2 import Environment, BaseLoader
 import smtplib
 from email.message import EmailMessage
 import os
+import logging
+
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    filename="log.txt",
+    filemode='a',
+)
 
 
 def send_email(subject, body):
@@ -48,14 +58,13 @@ class Client:
 
     def get(self, url, retries=3):
         self.sleep()
-        print("GET", url)
         result = requests.get(url)
 
         if retries == 0 or result.status_code < 500:
             return result
 
         sleep(self.SLEEP_TIME)
-        print("Retrying")
+        logging.debug("Retrying")
         return self.get(url, retries - 1)
 
     def _get_grid(self, lat, lon):
@@ -137,12 +146,13 @@ if __name__ == "__main__":
         for name, lat, lon, grid_attr, threshold, time in locations
     ]
     messages_meeting_criteria = [message for message in messages if message.meets_criteria]
-    print('\n'.join([message.message for message in messages]))
+    for message in messages:
+        logging.info(message.message)
 
     if messages_meeting_criteria:
         message_string = '\n'.join([message.message for message in messages_meeting_criteria])
         subject = "Weather notification: " + ', '.join([message.name for message in messages_meeting_criteria])
-        print(f'Sending message {subject}')
+        logging.debug(f'Sending message')
         send_email(subject, message_string)
     else:
-        print("No locations matching criteria tomorrow")
+        logging.info("No locations matching criteria tomorrow")
