@@ -34,7 +34,7 @@ def send_email(subject, body):
 @dataclass
 class Client:
     last_request: datetime = None
-    SLEEP_TIME: int = 10
+    SLEEP_TIME: int = int(os.getenv("SLEEP", "10"))
     cache_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), "grid_cache.json")
 
     def sleep(self):
@@ -98,13 +98,29 @@ def find_target_value(grid_forecast_list, target_time):
     raise ValueError("Can't find forecast", grid_forecast_list, target_time)
 
 
+@dataclass
+class Message:
+    name: str
+    grid_attr: str
+    value: int
+    threshold: int
+    target_time: datetime
+
+    @property
+    def message(self):
+        return f"{self.name} will have {self.grid_attr} of {self.value} tomorrow at {self.target_time.strftime('%H:%M')}"
+
+    @property
+    def meets_criteria(self):
+        return True
+        return self.value < self.threshold
+
+
 def get_message(client, name, lat, lon, grid_attr, threshold, time):
     grid_data = client.forecast_grid_data(lat, lon)
     target_time = (pytz.UTC.localize(datetime.now()) + timedelta(days=1)).replace(**time)
     value = find_target_value(grid_data["properties"]["skyCover"]["values"], target_time)
-    if value < threshold:
-        return name, f"{name} will have {grid_attr} of {value} tomorrow at {target_time.strftime('%H:%M')}"
-    return None
+    return Message(name=name, grid_attr=grid_attr, value=value, target_time=target_time, threshold=threshold)
 
 
 locations = [
@@ -116,15 +132,17 @@ locations = [
 
 if __name__ == "__main__":
     client = Client()
-    messages = list(filter(None, [
+    messages = [
         get_message(client, name, lat, lon, grid_attr, threshold, time)
         for name, lat, lon, grid_attr, threshold, time in locations
-    ]))
-    if messages:
-        messages_string = '\n'.join([message for _, message in messages])
-        subject = "Weather notification: " + ', '.join([subject for subject, _ in messages])
-        print("Sending message:")
-        print(messages_string)
-        send_email(subject, messages_string)
+    ]
+    messages_meeting_criteria = [message for message in messages if message.meets_criteria]
+    print('\n'.join([message.message for message in messages]))
+
+    if messages_meeting_criteria:
+        message_string = '\n'.join([message.message for message in messages_meeting_criteria])
+        subject = "Weather notification: " + ', '.join([message.name for message in messages_meeting_criteria])
+        print(f'Sending message {subject}')
+        send_email(subject, message_string)
     else:
         print("No locations matching criteria tomorrow")
