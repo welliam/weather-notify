@@ -121,7 +121,6 @@ class Message:
 
     @property
     def meets_criteria(self):
-        return True
         return self.value < self.threshold
 
 
