@@ -132,9 +132,9 @@ def get_message(client, name, lat, lon, grid_attr, threshold, time):
 
 
 locations = [
-    ("Deer Lagoon", 47.99282627971839, -122.4832813420477, "skyCover", 75, dict(hour=7, minute=0, second=0)),
-    ("Keystone", 48.164146562311, -122.6778767848785, "skyCover", 75, dict(hour=7, minute=0, second=0)),
-    ("Mt Erie", 48.454139838938154, -122.62510559151458, "skyCover", 75, dict(hour=7, minute=0, second=0)),
+    ("Deer Lagoon", 47.99282627971839, -122.4832813420477, "skyCover", 60, dict(hour=7, minute=0, second=0)),
+    ("Keystone", 48.164146562311, -122.6778767848785, "skyCover", 60, dict(hour=7, minute=0, second=0)),
+    ("Mt Erie", 48.454139838938154, -122.62510559151458, "skyCover", 60, dict(hour=7, minute=0, second=0)),
 ]
 
 
