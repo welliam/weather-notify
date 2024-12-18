@@ -11,6 +11,7 @@ import smtplib
 from email.message import EmailMessage
 import os
 import logging
+import suntime
 
 
 logging.basicConfig(
@@ -89,7 +90,7 @@ class Client:
 
 def duration_to_start_end(duration_str: str):
     [dt, duration] = duration_str.split("/")
-    start = datetime.fromisoformat(dt)
+    start = datetime.fromisoformat(dt).replace(tzinfo=pytz.timezone('US/Pacific'))
     if hours := re.match("PT([0-9]+)H", duration).groups():
         return [start, start + timedelta(hours=int(hours[0]))]
     raise ValueError("Weird duration_str", duration_str)
@@ -117,7 +118,8 @@ class Message:
 
     @property
     def message(self):
-        return f"{self.name} will have {self.grid_attr} of {self.value} tomorrow at {self.target_time.strftime('%H:%M')}"
+        time = self.target_time.astimezone(pytz.timezone('US/Pacific'))
+        return f"{self.name} will have {self.grid_attr} of {self.value} tomorrow at {time.strftime('%H:%M')}"
 
     @property
     def meets_criteria(self):
@@ -126,15 +128,24 @@ class Message:
 
 def get_message(client, name, lat, lon, grid_attr, threshold, time):
     grid_data = client.forecast_grid_data(lat, lon)
-    target_time = (pytz.UTC.localize(datetime.now()) + timedelta(days=1)).replace(**time)
+    target_time = get_time(time, lat, lon)
     value = find_target_value(grid_data["properties"]["skyCover"]["values"], target_time)
     return Message(name=name, grid_attr=grid_attr, value=value, target_time=target_time, threshold=threshold)
 
 
+def get_time(time, lat, lon):
+    if isinstance(time, dict):
+        return (pytz.UTC.localize(datetime.now()) + timedelta(days=1)).replace(**time)
+    if time == 'sunrise':
+        return suntime.Sun(lat, lon).get_sunrise_time() + timedelta(days=1)
+    else:
+        raise ValueError("idk how to handle", time)
+
+
 locations = [
-    ("Deer Lagoon", 47.99282627971839, -122.4832813420477, "skyCover", 60, dict(hour=7, minute=0, second=0)),
-    ("Keystone", 48.164146562311, -122.6778767848785, "skyCover", 60, dict(hour=7, minute=0, second=0)),
-    ("Mt Erie", 48.454139838938154, -122.62510559151458, "skyCover", 60, dict(hour=7, minute=0, second=0)),
+    ("Deer Lagoon", 47.99282627971839, -122.4832813420477, "skyCover", 60, "sunrise"),
+    ("Keystone", 48.164146562311, -122.6778767848785, "skyCover", 60, "sunrise"),
+    ("Mt Erie", 48.454139838938154, -122.62510559151458, "skyCover", 60, "sunrise"),
 ]
 
 
