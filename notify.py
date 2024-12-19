@@ -18,8 +18,6 @@ logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
-    filename=os.path.join(os.path.dirname(os.path.abspath(__file__)), "log.txt"),
-    filemode='a',
 )
 
 
@@ -49,13 +47,14 @@ class Client:
     cache_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), "grid_cache.json")
 
     def sleep(self):
-        sleep_for = self.SLEEP_TIME - (
-            (datetime.now() - self.last_request).microseconds / 1000000
-            if self.last_request is not None
-            else self.SLEEP_TIME
-        )
-        self.last_request = datetime.now()
-        sleep(sleep_for)
+        if self.SLEEP_TIME:
+            sleep_for = self.SLEEP_TIME - (
+                (datetime.now() - self.last_request).microseconds / 1000000
+                if self.last_request is not None
+                else self.SLEEP_TIME
+               )
+            self.last_request = datetime.now()
+            sleep(sleep_for)
 
     def get(self, url, retries=3):
         self.sleep()
@@ -90,7 +89,7 @@ class Client:
 
 def duration_to_start_end(duration_str: str):
     [dt, duration] = duration_str.split("/")
-    start = datetime.fromisoformat(dt).replace(tzinfo=pytz.timezone('US/Pacific'))
+    start = datetime.fromisoformat(dt)
     if hours := re.match("PT([0-9]+)H", duration).groups():
         return [start, start + timedelta(hours=int(hours[0]))]
     raise ValueError("Weird duration_str", duration_str)
@@ -98,12 +97,14 @@ def duration_to_start_end(duration_str: str):
 
 def target_time_occurs_during(duration_str: str, target_time: datetime):
     [start, end] = duration_to_start_end(duration_str)
-    return start <= target_time <= end
+    print(start, target_time, end)
+    return start <= target_time < end
 
 
 def find_target_value(grid_forecast_list, target_time):
     result = next(filter(lambda t: target_time_occurs_during(t["validTime"], target_time), grid_forecast_list), None)
     if result:
+        print(result)
         return result["value"]
     raise ValueError("Can't find forecast", grid_forecast_list, target_time)
 
