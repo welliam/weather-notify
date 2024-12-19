@@ -97,14 +97,12 @@ def duration_to_start_end(duration_str: str):
 
 def target_time_occurs_during(duration_str: str, target_time: datetime):
     [start, end] = duration_to_start_end(duration_str)
-    print(start, target_time, end)
     return start <= target_time < end
 
 
 def find_target_value(grid_forecast_list, target_time):
     result = next(filter(lambda t: target_time_occurs_during(t["validTime"], target_time), grid_forecast_list), None)
     if result:
-        print(result)
         return result["value"]
     raise ValueError("Can't find forecast", grid_forecast_list, target_time)
 
