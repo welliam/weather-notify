@@ -136,39 +136,40 @@ class Condition:
 class Message:
     name: str
     conditions: list[Condition]
-    values: dict[str, int]
-    target_time: datetime
+    values: dict[str, tuple[int, int]]  # (min, max) for each condition
+    start_time: datetime
+    end_time: datetime
 
     @property
     def message(self):
-        time = self.target_time.astimezone(pytz.timezone("US/Pacific"))
+        start = self.start_time.astimezone(pytz.timezone("US/Pacific"))
+        end = self.end_time.astimezone(pytz.timezone("US/Pacific"))
         parts = []
         for condition in self.conditions:
             unit = "mph" if condition.grid_attr == "windSpeed" else "%"
+            min_val, max_val = self.values[condition.grid_attr]
             parts.append(
-                f"{condition.grid_attr} of {self.values[condition.grid_attr]}{unit}"
+                f"{condition.grid_attr} between {min_val}{unit} and {max_val}{unit}"
             )
-        return f"{self.name} will have {' and '.join(parts)} tomorrow at {time.strftime('%H:%M')}"
+        return f"{self.name} will have {' and '.join(parts)} tomorrow between {start.strftime('%H:%M')} and {end.strftime('%H:%M')}"
 
     @property
     def meets_criteria(self):
-        return all(
-            self.values[condition.grid_attr] < condition.threshold
+        return any(
+            min_val < condition.threshold
             for condition in self.conditions
+            for min_val in [self.values[condition.grid_attr][0]]
         )
 
 
-def get_message(client, name, lat, lon, conditions, time):
-    grid_data = client.forecast_grid_data(lat, lon)
-    target_time = get_time(time, lat, lon)
-    values = {}
-    for condition in conditions:
-        values[condition.grid_attr] = find_target_value(
-            grid_data["properties"][condition.grid_attr]["values"], target_time
-        )
-    return Message(
-        name=name, conditions=conditions, values=values, target_time=target_time
-    )
+@dataclass
+class Location:
+    name: str
+    lat: float
+    lon: float
+    conditions: list[Condition]
+    start_time: str | dict
+    hours_after: int
 
 
 def get_time(time, lat, lon):
@@ -180,27 +181,56 @@ def get_time(time, lat, lon):
         raise ValueError("idk how to handle", time)
 
 
+def get_message(client, name, lat, lon, conditions, start_time, hours_after):
+    grid_data = client.forecast_grid_data(lat, lon)
+    start = get_time(start_time, lat, lon)
+    end = start + timedelta(hours=hours_after)
+    values = {}
+    for condition in conditions:
+        forecast_values = []
+        current = start
+        while current <= end:
+            try:
+                forecast_values.append(
+                    find_target_value(
+                        grid_data["properties"][condition.grid_attr]["values"], current
+                    )
+                )
+            except ValueError:
+                pass
+            current += timedelta(hours=1)
+        if not forecast_values:
+            raise ValueError(f"No forecasts found between {start} and {end}")
+        values[condition.grid_attr] = (min(forecast_values), max(forecast_values))
+    return Message(
+        name=name, conditions=conditions, values=values, start_time=start, end_time=end
+    )
+
+
 locations = [
-    (
+    Location(
         "Deer Lagoon",
         47.99282627971839,
         -122.4832813420477,
         [Condition("skyCover", 60), Condition("windSpeed", 10)],
         "sunrise",
+        2,
     ),
-    (
+    Location(
         "Keystone",
         48.164146562311,
         -122.6778767848785,
         [Condition("skyCover", 60), Condition("windSpeed", 10)],
         "sunrise",
+        2,
     ),
-    (
+    Location(
         "Mt Erie",
         48.454139838938154,
         -122.62510559151458,
         [Condition("skyCover", 60), Condition("windSpeed", 10)],
         "sunrise",
+        2,
     ),
 ]
 
@@ -208,8 +238,16 @@ locations = [
 if __name__ == "__main__":
     client = Client()
     messages = [
-        get_message(client, name, lat, lon, conditions, time)
-        for name, lat, lon, conditions, time in locations
+        get_message(
+            client,
+            loc.name,
+            loc.lat,
+            loc.lon,
+            loc.conditions,
+            loc.start_time,
+            loc.hours_after,
+        )
+        for loc in locations
     ]
     messages_meeting_criteria = [
         message for message in messages if message.meets_criteria
