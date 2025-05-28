@@ -169,7 +169,7 @@ class Location:
     lon: float
     conditions: list[Condition]
     start_time: str | dict
-    hours_after: int
+    hours_after: int | dict
 
 
 def get_time(time, lat, lon):
@@ -184,7 +184,10 @@ def get_time(time, lat, lon):
 def get_message(client, name, lat, lon, conditions, start_time, hours_after):
     grid_data = client.forecast_grid_data(lat, lon)
     start = get_time(start_time, lat, lon)
-    end = start + timedelta(hours=hours_after)
+    if isinstance(hours_after, dict):
+        end = (pytz.UTC.localize(datetime.now()) + timedelta(days=1)).replace(**hours_after)
+    else:
+        raise ValueError("woop")
     values = {}
     for condition in conditions:
         forecast_values = []
@@ -214,7 +217,7 @@ locations = [
         -122.4832813420477,
         [Condition("skyCover", 60), Condition("windSpeed", 10)],
         "sunrise",
-        2,
+        dict(hour=9),
     ),
     Location(
         "Keystone",
@@ -222,7 +225,7 @@ locations = [
         -122.6778767848785,
         [Condition("skyCover", 60), Condition("windSpeed", 10)],
         "sunrise",
-        2,
+        dict(hour=9),
     ),
     Location(
         "Mt Erie",
@@ -230,7 +233,7 @@ locations = [
         -122.62510559151458,
         [Condition("skyCover", 60), Condition("windSpeed", 10)],
         "sunrise",
-        2,
+        dict(hour=9),
     ),
 ]
 
